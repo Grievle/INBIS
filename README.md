@@ -11,6 +11,7 @@
 ## 실행방법
 1. weights 가져오기
 ```
+cd INBIS
 wget https://pjreddie.com/media/files/yolov3.weights 
 ```
 
