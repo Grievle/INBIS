@@ -7,3 +7,19 @@
 ### Member
 - 소속: 국민대학교 소프트웨어학부, 경영정보학부
 - 김명진, 이다은, 이도훈, 이정하, 조재오, 홍진욱
+
+## 실행방법
+1. weights 가져오기
+```
+wget https://pjreddie.com/media/files/yolov3.weights 
+```
+
+2. 실시간 웹캠 영상처리
+```
+python cam_demo.py
+```
+
+3. 영상 파일 처리
+```
+python video_demo.py [--video [VIDEO_FILE]]
+```
