@@ -7,9 +7,11 @@ import cv2
 from util import write_results, load_classes
 from darknet import Darknet
 from preprocess import prep_image
+import numpy as np
 import random 
 import pickle as pkl
 import argparse
+import threading
 
 def write(x, img, classes, colors):
     c1 = tuple(x[1:3].int())
@@ -24,6 +26,17 @@ def write(x, img, classes, colors):
         cv2.rectangle(img, c1, c2,color, -1)
         cv2.putText(img, label, (c1[0], c1[1] + t_size[1] + 4), cv2.FONT_HERSHEY_PLAIN, 1, [225,255,255], 1);
     return img, label
+
+def check_person(max_val, loc):
+    if loc == "front":
+        threshold = 3
+    else:
+        threshold = 10
+
+    if threshold < max_val:
+        return "red"
+    else:
+        return "green"
 
 def arg_parse():
     
@@ -47,11 +60,22 @@ def arg_parse():
     return parser.parse_args()
 
 
-def video_demo():
+def represent_case(orig_im, case):
+    w, h, d = orig_im.shape
+    filter_img = np.zeros((w, h, d), np.uint8)
+    if case == "red":
+        filter_img[:,:] = (0,0,255)
+    else:
+        filter_img[:,:] = (0,255,0)
+    return cv2.addWeighted(orig_im, 0.8, filter_img, 0.2, 0)
+    
+
+def main(loc):
     args = arg_parse()
     confidence = float(args.confidence)
     nms_thesh = float(args.nms_thresh)
     start = 0
+    print("loc: ", loc)
 
     CUDA = torch.cuda.is_available()
 
@@ -78,7 +102,11 @@ def video_demo():
     status = False
     option = args.option
     if option == "webcam":
-        cap = cv2.VideoCapture(0)
+        if loc == "front":
+            cap = cv2.VideoCapture(0)
+        else:
+            cap = cv2.VideoCapture(1)
+
     elif option == "video":
         videofile = args.video
         cap = cv2.VideoCapture(videofile)
@@ -135,10 +163,14 @@ def video_demo():
             if max_val < cnt:
                max_val = cnt
             print("max_val : " + str(max_val))
-            cv2.imshow("frame", orig_im)
+            
+            case = check_person(max_val, loc)
+            after_img = represent_case(orig_im, case)
+
+            cv2.imshow(loc, after_img)
             if status:
                 cv2.waitKey(-1)
-            cv2.imwrite('output/frame%04d.jpg' %(tmp), orig_im)
+            #cv2.imwrite('output/frame%04d' + loc + '.jpg' %(tmp), orig_im)
             tmp += 1
             key = cv2.waitKey(1)
             if key & 0xFF == ord('q'):
@@ -150,7 +182,14 @@ def video_demo():
             break
 
 if __name__ == '__main__':
-    video_demo()
+    t = threading.Thread(target=main, args=("back",))
+    t.start()
+    t = threading.Thread(target=main, args=("front",))
+    t.start()
+    #loc = "front"
+    #main(loc)
+    
+    
 
     
     
