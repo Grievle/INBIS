@@ -193,6 +193,13 @@ def main():
             after_img_f = represent_case(orig_im_f, case_f)
             after_img_b = represent_case(orig_im_b, case_b)
 
+            f_w, f_h, f_d = after_img_f.shape
+            b_w, b_h, b_d = after_img_b.shape
+            h = max(f_h, b_h)
+            after_img = np.zeros((f_w + b_w, h, f_d), np.uint8)
+            after_img[0:f_h, 0:f_w] = after_img_f[:, :]
+            after_img[0:b_h, f_w:f_w + b_w] = after_img_b[:, :]
+
             cv2.imshow(loc, after_img)
             if status:
                 cv2.waitKey(-1)
