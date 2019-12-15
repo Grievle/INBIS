@@ -26,14 +26,9 @@ def write(x, img, classes, colors):
     return img, label
 
 def arg_parse():
-    """
-    Parse arguements to the detect module
-    
-    """
-    
     
     parser = argparse.ArgumentParser(description='YOLO v3 Video Detection Module')
-   
+    parser.add_argument("--option", dest = 'option', help = "video/webcam/image(default : video)", default = "video", type = str)
     parser.add_argument("--video", dest = 'video', help = 
                         "Video to run detection upon",
                         default = "video.avi", type = str)
@@ -80,10 +75,17 @@ def video_demo():
         model.cuda()
         
     model.eval()
-    
-    videofile = args.video
-    cap = cv2.VideoCapture(videofile)
-    
+    status = False
+    option = args.option
+    if option == "webcam":
+        cap = cv2.VideoCapture(0)
+    elif option == "video":
+        videofile = args.video
+        cap = cv2.VideoCapture(videofile)
+    else:
+        videofile = args.video
+        cap = cv2.VideoCapture(videofile)
+        status = True
     assert cap.isOpened(), 'Cannot capture source'
     
     frames = 0
@@ -112,10 +114,7 @@ def video_demo():
                 if key & 0xFF == ord('q'):
                     break
                 continue
-            
-            
 
-            
             im_dim = im_dim.repeat(output.size(0), 1)
             scaling_factor = torch.min(inp_dim/im_dim,1)[0].view(-1,1)
             
@@ -137,7 +136,8 @@ def video_demo():
                max_val = cnt
             print("max_val : " + str(max_val))
             cv2.imshow("frame", orig_im)
-            #cv2.waitKey(-1)
+            if status:
+                cv2.waitKey(-1)
             cv2.imwrite('output/frame%04d.jpg' %(tmp), orig_im)
             tmp += 1
             key = cv2.waitKey(1)
@@ -145,8 +145,7 @@ def video_demo():
                 break
             frames += 1
             print("FPS of the video is {:5.2f}".format( frames / (time.time() - start)))
-
-            
+  
         else:
             break
 
