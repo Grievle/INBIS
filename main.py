@@ -70,12 +70,12 @@ def represent_case(orig_im, case):
     return cv2.addWeighted(orig_im, 0.8, filter_img, 0.2, 0)
     
 
-def main(loc):
+def main():
     args = arg_parse()
     confidence = float(args.confidence)
     nms_thesh = float(args.nms_thresh)
     start = 0
-    print("loc: ", loc)
+    #print("loc: ", loc)
 
     CUDA = torch.cuda.is_available()
 
@@ -101,11 +101,11 @@ def main(loc):
     model.eval()
     status = False
     option = args.option
-    if option == "webcam":
-        if loc == "front":
-            cap = cv2.VideoCapture(0)
-        else:
-            cap = cv2.VideoCapture(1)
+    #if option == "webcam":
+    #    if loc == "front":
+    cap_front = cv2.VideoCapture(0)
+    #    else:
+    cap_back = cv2.VideoCapture(1)
 
     elif option == "video":
         videofile = args.video
@@ -118,22 +118,30 @@ def main(loc):
     
     frames = 0
     start = time.time()  
-    max_val = 0 
+    max_val_f = 0
+    max_val_b = 0 
     tmp = 0
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if ret:
-            img, orig_im, dim = prep_image(frame, inp_dim)
-            im_dim = torch.FloatTensor(dim).repeat(1,2)                        
+    while cap_back.isOpened() or cap_front.isOpened():
+        ret_front, frame_front = cap_front.read()
+        ret_back, frame_back = cap_back.read()
+        if ret_front and ret_back:
+            img_f, orig_im_f, dim_f = prep_image(frame_front, inp_dim)
+            img_b, orig_im_b, dim_b = prep_image(frame_back, inp_dim)
+            im_dim_f = torch.FloatTensor(dim_f).repeat(1,2)
+            im_dim_b = torch.FloatTensor(dim_b).repeat(1,2)                        
 
             if CUDA:
-                im_dim = im_dim.cuda()
-                img = img.cuda()
+                im_dim_f = im_dim_f.cuda()
+                img_f = img_f.cuda()
+                im_dim_b = im_dim_b.cuda()
+                img_b = img_b.cuda()
             
             with torch.no_grad():   
-                output = model(Variable(img), CUDA)
-            output = write_results(output, confidence, num_classes, nms = True, nms_conf = nms_thesh)
-
+                output_f = model(Variable(img_f), CUDA)
+                output_b = model(Variable(img_b), CUDA)
+            output_f = write_results(output_f, confidence, num_classes, nms = True, nms_conf = nms_thesh)
+            output_b = write_results(output_b, confidence, num_classes, nms = True, nms_conf = nms_thesh)
+            """    
             if type(output) == int:
                 frames += 1
                 print("FPS of the video is {:5.2f}".format( frames / (time.time() - start)))
@@ -142,30 +150,48 @@ def main(loc):
                 if key & 0xFF == ord('q'):
                     break
                 continue
-
-            im_dim = im_dim.repeat(output.size(0), 1)
-            scaling_factor = torch.min(inp_dim/im_dim,1)[0].view(-1,1)
+            """
+            im_dim_f = im_dim_f.repeat(output_f.size(0), 1)
+            scaling_factor_f = torch.min(inp_dim_f/im_dim_f,1)[0].view(-1,1)
+            im_dim_b = im_dim_b.repeat(output_b.size(0), 1)
+            scaling_factor_f = torch.min(inp_dim_f/im_dim_f,1)[0].view(-1,1)
             
-            output[:,[1,3]] -= (inp_dim - scaling_factor*im_dim[:,0].view(-1,1))/2
-            output[:,[2,4]] -= (inp_dim - scaling_factor*im_dim[:,1].view(-1,1))/2
+            output_f[:,[1,3]] -= (inp_dim_f - scaling_factor_f*im_dim_f[:,0].view(-1,1))/2
+            output_f[:,[2,4]] -= (inp_dim_f - scaling_factor_f*im_dim_f[:,1].view(-1,1))/2
             
-            output[:,1:5] /= scaling_factor
+            output_F[:,1:5] /= scaling_factor_f
     
-            for i in range(output.shape[0]):
-                output[i, [1,3]] = torch.clamp(output[i, [1,3]], 0.0, im_dim[i,0])
-                output[i, [2,4]] = torch.clamp(output[i, [2,4]], 0.0, im_dim[i,1])
+            for i in range(output_f.shape[0]):
+                output_f[i, [1,3]] = torch.clamp(output_f[i, [1,3]], 0.0, im_dim[i,0])
+                output_f[i, [2,4]] = torch.clamp(output_f[i, [2,4]], 0.0, im_dim[i,1])
+
+            output_b[:,[1,3]] -= (inp_dim_b - scaling_factor_b*im_dim_b[:,0].view(-1,1))/2
+            output_b[:,[2,4]] -= (inp_dim_b - scaling_factor_b*im_dim_b[:,1].view(-1,1))/2
             
+            output_b[:,1:5] /= scaling_factor_b
+    
+            for i in range(output_b.shape[0]):
+                output_b[i, [1,3]] = torch.clamp(output_b[i, [1,3]], 0.0, im_dim_b[i,0])
+                output_f[i, [2,4]] = torch.clamp(output_f[i, [2,4]], 0.0, im_dim_f[i,1])
+                        
             classes = load_classes('data/coco.names')
             colors = pkl.load(open("pallete", "rb"))
+            #############33
+            cnt_f = list(map(lambda x: write(x, orig_im_f, classes, colors)[1], output)).count("person")
+            cnt_b = list(map(lambda x: write(x, orig_im_b, classes, colors)[1], output)).count("person")
+            print("front person : " + str(cnt_f))
+            print("back person : " + str(cnt_b))
+            if max_va_f < cnt_f:
+               max_val_f = cnt_f
+            if max_val_b < cnt_b:
+               max_val_b = cnt_b
+            print("max_val_f : " + str(max_val_f))
+            print("max_val_b : " + str(max_val_b))
             
-            cnt = list(map(lambda x: write(x, orig_im, classes, colors)[1], output)).count("person")
-            print("person : " + str(cnt))
-            if max_val < cnt:
-               max_val = cnt
-            print("max_val : " + str(max_val))
-            
-            case = check_person(max_val, loc)
-            after_img = represent_case(orig_im, case)
+            case_f = check_person(max_val_f, "front")
+            case_b = check_person(max_val_b, "back")
+            after_img_f = represent_case(orig_im_f, case_f)
+            after_img_b = represent_case(orig_im_b, case_b)
 
             cv2.imshow(loc, after_img)
             if status:
@@ -182,12 +208,14 @@ def main(loc):
             break
 
 if __name__ == '__main__':
+    """
     t = threading.Thread(target=main, args=("back",))
     t.start()
     t = threading.Thread(target=main, args=("front",))
     t.start()
+    """
     #loc = "front"
-    #main(loc)
+    main()
     
     
 
