@@ -122,6 +122,7 @@ if __name__ == '__main__':
     frames = 0
     start = time.time()   
     max_val = 0 
+    tmp = 0
     while cap.isOpened():
         
         ret, frame = cap.read()
@@ -172,7 +173,10 @@ if __name__ == '__main__':
             print("person : " + str(cnt))
             if max_val < cnt:
                max_val = cnt
+            print("max_val : " + str(max_val))
             cv2.imshow("frame", orig_im)
+            cv2.imwrite('output/frame%04d.jpg' %(tmp), orig_im)
+            tmp += 1
             key = cv2.waitKey(1)
             if key & 0xFF == ord('q'):
                 break
@@ -183,7 +187,7 @@ if __name__ == '__main__':
         else:
             break
     
-print(max_val)
+
     
     
 

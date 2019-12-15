@@ -46,11 +46,13 @@ def write(x, img):
     cls = int(x[-1])
     label = "{0}".format(classes[cls])
     color = random.choice(colors)
-    cv2.rectangle(img, c1, c2,color, 1)
-    t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_PLAIN, 1 , 1)[0]
-    c2 = c1[0] + t_size[0] + 3, c1[1] + t_size[1] + 4
-    cv2.rectangle(img, c1, c2,color, -1)
-    cv2.putText(img, label, (c1[0], c1[1] + t_size[1] + 4), cv2.FONT_HERSHEY_PLAIN, 1, [225,255,255], 1);
+    print(label)
+    if label == "person":
+        cv2.rectangle(img, c1, c2,color, 1)
+        t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_PLAIN, 1 , 1)[0]
+        c2 = c1[0] + t_size[0] + 3, c1[1] + t_size[1] + 4
+        cv2.rectangle(img, c1, c2,color, -1)
+        cv2.putText(img, label, (c1[0], c1[1] + t_size[1] + 4), cv2.FONT_HERSHEY_PLAIN, 1, [225,255,255], 1);
     return img, label
 
 def arg_parse():
@@ -108,7 +110,8 @@ if __name__ == '__main__':
     assert cap.isOpened(), 'Cannot capture source'
     
     frames = 0
-    start = time.time()    
+    start = time.time()
+    print(load_classes('data/coco.names'))                
     while cap.isOpened():
         
         ret, frame = cap.read()
@@ -144,6 +147,7 @@ if __name__ == '__main__':
 
             
             classes = load_classes('data/coco.names')
+            
             colors = pkl.load(open("pallete", "rb"))
             
             cnt = list(map(lambda x: write(x, orig_im)[1], output)).count("person")

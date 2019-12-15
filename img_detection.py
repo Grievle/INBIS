@@ -56,6 +56,7 @@ def arg_parse():
     return parser.parse_args()
 
 if __name__ == '__main__':
+    tmp = 0
     cfgfile = "cfg/yolov3.cfg"
     weightsfile = "yolov3.weights"
     num_classes = 80
@@ -115,4 +116,5 @@ if __name__ == '__main__':
     print(result)
     print("person : " + str(cnt))
     cv2.imshow("frame", orig_im)
+    cv2.imwrite('output/frame%04d.jpg' %(tmp), orig_im)
     cv2.waitKey(0)
