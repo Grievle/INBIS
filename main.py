@@ -40,12 +40,11 @@ def check_person(max_val, loc):
 
 def arg_parse():
     
-    parser = argparse.ArgumentParser(description='YOLO v3 Video Detection Module')
+    parser = argparse.ArgumentParser(description='INBIS')
     parser.add_argument("--option", dest = 'option', help = "video/webcam/image(default : video)", default = "video", type = str)
-    parser.add_argument("--video", dest = 'video', help = 
-                        "Video to run detection upon",
-                        default = "video.avi", type = str)
-    parser.add_argument("--dataset", dest = "dataset", help = "Dataset on which the network has been trained", default = "pascal")
+    parser.add_argument("--file", dest = 'file', help = 
+                        "file log to run detection upon",
+                        defconault = "video.avi", type = str)
     parser.add_argument("--confidence", dest = "confidence", help = "Object Confidence to filter predictions", default = 0.5)
     parser.add_argument("--nms_thresh", dest = "nms_thresh", help = "NMS Threshhold", default = 0.4)
     parser.add_argument("--cfg", dest = 'cfgfile', help = 
@@ -108,11 +107,11 @@ def main():
         cap_back = cv2.VideoCapture(1)
 
     elif option == "video":
-        videofile = args.video
+        videofile = args.file
         cap_front = cv2.VideoCapture(videofile)
         cap_back = cv2.VideoCapture(videofile)
     else:
-        videofile = args.video
+        videofile = args.file
         cap_front = cv2.VideoCapture(videofile)
         cap_back = cv2.VideoCapture(videofile)
         status = True
