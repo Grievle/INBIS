@@ -101,20 +101,23 @@ def main():
     model.eval()
     status = False
     option = args.option
-    #if option == "webcam":
-    #    if loc == "front":
-    cap_front = cv2.VideoCapture(0)
-    #    else:
-    cap_back = cv2.VideoCapture(1)
+    if option == "webcam":
+       # if loc == "front":
+        cap_front = cv2.VideoCapture(0)
+        #else:
+        cap_back = cv2.VideoCapture(1)
 
     elif option == "video":
         videofile = args.video
-        cap = cv2.VideoCapture(videofile)
+        cap_front = cv2.VideoCapture(videofile)
+        cap_back = cv2.VideoCapture(videofile)
     else:
         videofile = args.video
-        cap = cv2.VideoCapture(videofile)
+        cap_front = cv2.VideoCapture(videofile)
+        cap_back = cv2.VideoCapture(videofile)
         status = True
-    assert cap.isOpened(), 'Cannot capture source'
+    assert cap_back.isOpened(), 'Cannot capture source'
+    assert cap_front.isOpened(), 'Cannot capture source'
     
     frames = 0
     start = time.time()  
@@ -152,36 +155,36 @@ def main():
                 continue
             """
             im_dim_f = im_dim_f.repeat(output_f.size(0), 1)
-            scaling_factor_f = torch.min(inp_dim_f/im_dim_f,1)[0].view(-1,1)
+            scaling_factor_f = torch.min(inp_dim/im_dim_f,1)[0].view(-1,1)
             im_dim_b = im_dim_b.repeat(output_b.size(0), 1)
-            scaling_factor_f = torch.min(inp_dim_f/im_dim_f,1)[0].view(-1,1)
+            scaling_factor_b = torch.min(inp_dim/im_dim_b,1)[0].view(-1,1)
+            ###############3
+            output_f[:,[1,3]] -= (inp_dim - scaling_factor_f*im_dim_f[:,0].view(-1,1))/2
+            output_f[:,[2,4]] -= (inp_dim - scaling_factor_f*im_dim_f[:,1].view(-1,1))/2
             
-            output_f[:,[1,3]] -= (inp_dim_f - scaling_factor_f*im_dim_f[:,0].view(-1,1))/2
-            output_f[:,[2,4]] -= (inp_dim_f - scaling_factor_f*im_dim_f[:,1].view(-1,1))/2
-            
-            output_F[:,1:5] /= scaling_factor_f
+            output_f[:,1:5] /= scaling_factor_f
     
             for i in range(output_f.shape[0]):
-                output_f[i, [1,3]] = torch.clamp(output_f[i, [1,3]], 0.0, im_dim[i,0])
-                output_f[i, [2,4]] = torch.clamp(output_f[i, [2,4]], 0.0, im_dim[i,1])
-
-            output_b[:,[1,3]] -= (inp_dim_b - scaling_factor_b*im_dim_b[:,0].view(-1,1))/2
-            output_b[:,[2,4]] -= (inp_dim_b - scaling_factor_b*im_dim_b[:,1].view(-1,1))/2
+                output_f[i, [1,3]] = torch.clamp(output_f[i, [1,3]], 0.0, im_dim_f[i,0])
+                output_f[i, [2,4]] = torch.clamp(output_f[i, [2,4]], 0.0, im_dim_f[i,1])
+            #######################
+            output_b[:,[1,3]] -= (inp_dim - scaling_factor_b*im_dim_b[:,0].view(-1,1))/2
+            output_b[:,[2,4]] -= (inp_dim - scaling_factor_b*im_dim_b[:,1].view(-1,1))/2
             
             output_b[:,1:5] /= scaling_factor_b
     
             for i in range(output_b.shape[0]):
                 output_b[i, [1,3]] = torch.clamp(output_b[i, [1,3]], 0.0, im_dim_b[i,0])
-                output_f[i, [2,4]] = torch.clamp(output_f[i, [2,4]], 0.0, im_dim_f[i,1])
-                        
+                output_b[i, [2,4]] = torch.clamp(output_b[i, [2,4]], 0.0, im_dim_b[i,1])
+            ###############3        
             classes = load_classes('data/coco.names')
             colors = pkl.load(open("pallete", "rb"))
-            #############33
-            cnt_f = list(map(lambda x: write(x, orig_im_f, classes, colors)[1], output)).count("person")
-            cnt_b = list(map(lambda x: write(x, orig_im_b, classes, colors)[1], output)).count("person")
+            #############
+            cnt_f = list(map(lambda x: write(x, orig_im_f, classes, colors)[1], output_f)).count("person")
+            cnt_b = list(map(lambda x: write(x, orig_im_b, classes, colors)[1], output_b)).count("person")
             print("front person : " + str(cnt_f))
             print("back person : " + str(cnt_b))
-            if max_va_f < cnt_f:
+            if max_val_f < cnt_f:
                max_val_f = cnt_f
             if max_val_b < cnt_b:
                max_val_b = cnt_b
@@ -193,17 +196,18 @@ def main():
             after_img_f = represent_case(orig_im_f, case_f)
             after_img_b = represent_case(orig_im_b, case_b)
 
-            f_w, f_h, f_d = after_img_f.shape
-            b_w, b_h, b_d = after_img_b.shape
+            f_h, f_w, f_d = after_img_f.shape
+            b_h, b_w, b_d = after_img_b.shape
             h = max(f_h, b_h)
-            after_img = np.zeros((f_w + b_w, h, f_d), np.uint8)
+            print(h)
+            after_img = np.zeros((h, f_w + b_w, f_d), np.uint8)
             after_img[0:f_h, 0:f_w] = after_img_f[:, :]
             after_img[0:b_h, f_w:f_w + b_w] = after_img_b[:, :]
 
-            cv2.imshow(loc, after_img)
+            cv2.imshow("frame", after_img)
             if status:
                 cv2.waitKey(-1)
-            #cv2.imwrite('output/frame%04d' + loc + '.jpg' %(tmp), orig_im)
+            cv2.imwrite('output/frame%04d.jpg' %(tmp), after_img)
             tmp += 1
             key = cv2.waitKey(1)
             if key & 0xFF == ord('q'):
