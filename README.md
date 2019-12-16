@@ -8,6 +8,15 @@
 - 소속: 국민대학교 소프트웨어학부, 경영정보학부
 - 김명진, 이다은, 이도훈, 이정하, 조재오, 홍진욱
 
+### Requirements
+- Torch == 1.3.1
+- Open CV == 4.1.1
+- Numpy == 1.17.3
+- Python == 3.7.3
+- NVIDIA Driver == 440.44
+- NVIDIA GPU == GeForce 940MX
+- Linux CUDA == 10.2
+
 ## 실행방법
 1. weights 가져오기
 ```
