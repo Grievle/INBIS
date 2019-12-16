@@ -24,3 +24,11 @@ python cam_demo.py
 ```
 python video_demo.py [--video [VIDEO_FILE]]
 ```
+
+4. 최종 결과물 실행
+```
+python main.py  [--option [OPTION]] [--front [FRONT]] [--back [BACK]]
+    --option    Choose one option video/webcam/image(default : video)
+    --front     Front file log to run detection upon except that option is webcam
+    --back      Back file log to run detection upon except that option is webcam
+```
